@@ -6,15 +6,15 @@
   <title>🥷 Ahorcado</title>
   <style>
     :root {
-      --bg1:#0f172a; --bg2:#1e293b;
+      --bg1:#000; --bg2:#111;
       --acc:#22d3ee; --acc2:#fbbf24;
       --ok:#22c55e; --bad:#ef4444;
-      --text:#e5e7eb; --muted:#94a3b8;
+      --text:#f1f5f9; --muted:#9ca3af;
     }
     html,body{height:100%;margin:0;}
     body {
       font-family: system-ui, sans-serif;
-      background: linear-gradient(135deg,var(--bg1),#111827 55%, var(--bg2));
+      background: #000;
       color: var(--text);
       display:flex;align-items:center;justify-content:center;padding:12px;
     }
@@ -66,7 +66,7 @@
     .letter.revealed{border-bottom-color:var(--ok);color:#eafff5}
     .letter.space{border-bottom-color:transparent;width:18px}
     .status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--muted)}
-    .gallows{background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:8px;}
+    .gallows{background:#000;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:8px;}
     svg{width:100%;height:auto;max-height:240px}
     .part{opacity:0;transition:opacity .25s ease}
     .part.show{opacity:1}
@@ -74,11 +74,12 @@
     .banner.ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.5);color:#d1fae5}
     .banner.bad{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.5);color:#fee2e2}
     .keyboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
-    .key{background:#0b1220;border:1px solid rgba(255,255,255,.12);
+    .key{background:#000;border:1px solid rgba(255,255,255,.12);
       padding:10px 0;border-radius:10px;font-weight:700;cursor:pointer;color:var(--text);
       transition:.15s;user-select:none;font-size:16px;}
     .key[disabled]{opacity:.35;cursor:not-allowed;}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -233,7 +234,14 @@
       }
       $score.innerHTML=html;
     }
-    function showBanner(cls,msg){$banner.className="banner "+cls;$banner.textContent=msg;$banner.style.display="block";}
+    function showBanner(cls,msg){
+      $banner.className="banner "+cls;
+      $banner.textContent=msg;
+      $banner.style.display="block";
+      if(cls==="ok" && window.confetti){
+        confetti({particleCount:120, spread:70, origin:{y:0.6}});
+      }
+    }
     function hideBanner(){$banner.style.display="none";}
     function disableKeyboard(){[...$keyboard.children].forEach(b=>b.disabled=true);}
     function revealAll(){state.revealed=state.revealed.map(()=>true);renderWord();}
