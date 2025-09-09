@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>⚙️ Configuración de Equipos y Palabras</title>
+  <style>
+    body{font-family:Arial, sans-serif;background:#0f172a;color:#e5e7eb;padding:20px;}
+    h1{color:#22d3ee;}
+    .equipo{border:1px solid #334155;padding:12px;margin-bottom:12px;border-radius:10px;background:#1e293b;}
+    label{display:block;margin:6px 0;font-weight:bold;}
+    input,textarea,select,button{margin:4px 0;padding:6px;border-radius:6px;border:1px solid #334155;}
+    textarea{width:100%;height:80px;}
+    button{cursor:pointer;background:#22d3ee;color:#0f172a;font-weight:bold;}
+    .info{color:#94a3b8;font-size:14px;}
+  </style>
+</head>
+<body>
+  <h1>⚙️ Configurar Equipos y Palabras</h1>
+  <label>Número de equipos:
+    <select id="numTeams">
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+  </label>
+
+  <div id="teamsContainer"></div>
+  <button id="save">Guardar configuración</button>
+  <p class="info">ℹ️ Cada palabra debe escribirse en una línea diferente.  
+  Ejemplo: <br>PERRO<br>GATO<br>ELEFANTE</p>
+
+  <script>
+    const TEAMS_KEY = "ahorcado_equipos";
+    const WORDS_KEY = "ahorcado_palabras_por_equipo";
+
+    const $numTeams = document.getElementById("numTeams");
+    const $container = document.getElementById("teamsContainer");
+    const $save = document.getElementById("save");
+
+    function renderTeams(){
+      $container.innerHTML="";
+      const n = parseInt($numTeams.value);
+      for(let i=0;i<n;i++){
+        const div=document.createElement("div");
+        div.className="equipo";
+        div.innerHTML=`
+          <label>Nombre del equipo ${i+1}:
+            <input type="text" id="teamName${i}" value="Equipo ${i+1}">
+          </label>
+          <label>Palabras del equipo (una por línea):
+            <textarea id="teamWords${i}" placeholder="Escribe aquí las palabras"></textarea>
+          </label>
+        `;
+        $container.appendChild(div);
+      }
+    }
+
+    $numTeams.onchange=renderTeams;
+    renderTeams();
+
+    $save.onclick=()=>{
+      const n=parseInt($numTeams.value);
+      const equipos=[]; 
+      const palabrasPorEquipo={};
+
+      for(let i=0;i<n;i++){
+        const name=document.getElementById("teamName"+i).value.trim() || `Equipo ${i+1}`;
+        equipos.push(name);
+        const words=document.getElementById("teamWords"+i).value
+          .split("\n").map(w=>w.trim().toUpperCase()).filter(w=>w);
+        palabrasPorEquipo[name]=words;
+      }
+
+      localStorage.setItem(TEAMS_KEY, JSON.stringify(equipos));
+      localStorage.setItem(WORDS_KEY, JSON.stringify(palabrasPorEquipo));
+      alert("✅ Configuración guardada correctamente.\nYa puedes ir a jugar al Ahorcado.");
+    };
+  </script>
+</body>
+</html>

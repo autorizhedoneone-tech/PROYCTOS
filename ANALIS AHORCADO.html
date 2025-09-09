@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🥷 Ahorcado</title>
+  <style>
+    :root {
+      --bg1:#0f172a; --bg2:#1e293b;
+      --acc:#22d3ee; --acc2:#fbbf24;
+      --ok:#22c55e; --bad:#ef4444;
+      --text:#e5e7eb; --muted:#94a3b8;
+    }
+    html,body{height:100%;margin:0;}
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg,var(--bg1),#111827 55%, var(--bg2));
+      color: var(--text);
+      display:flex;align-items:center;justify-content:center;padding:12px;
+    }
+    .app {
+      width:100%;max-width:1100px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:24px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
+      overflow:hidden;
+      display:flex;flex-direction:column;
+      height:100%;max-height:900px;
+    }
+    header {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border-bottom:1px solid rgba(255,255,255,0.08);
+    }
+    header h1{font-size:clamp(18px,4vw,28px);margin:0;}
+    a.menu {
+      text-decoration:none;color:var(--acc2);font-weight:600;
+      padding:8px 12px;border-radius:10px;
+      border:1px solid rgba(251,191,36,.4);
+      background:rgba(251,191,36,.08);
+    }
+    #scoreboard { text-align:center; padding:10px; font-weight:bold; }
+    main {
+      display:grid;grid-template-columns:1.1fr .9fr;
+      gap:16px;padding:16px;flex:1;overflow:auto;
+    }
+    @media(max-width:800px){main{grid-template-columns:1fr;}}
+    .stage {
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:18px;padding:14px;
+      display:grid;grid-template-rows:auto auto 1fr auto auto;gap:10px;
+    }
+    .topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    select,button{border-radius:10px;padding:8px 12px}
+    .btn{cursor:pointer;border:1px solid rgba(255,255,255,.14);font-weight:600;}
+    .btn.primary{border-color:rgba(34,211,238,.5);background:linear-gradient(180deg,#22d3ee,#06b6d4);}
+    .word {
+      display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;
+      font-weight:800;letter-spacing:2px;font-size:clamp(22px,6vw,40px);
+      padding:10px;min-height:60px;
+    }
+    .letter{width:30px;text-align:center;border-bottom:3px solid rgba(255,255,255,.25);padding-bottom:4px}
+    .letter.revealed{border-bottom-color:var(--ok);color:#eafff5}
+    .letter.space{border-bottom-color:transparent;width:18px}
+    .status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--muted)}
+    .gallows{background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:8px;}
+    svg{width:100%;height:auto;max-height:240px}
+    .part{opacity:0;transition:opacity .25s ease}
+    .part.show{opacity:1}
+    .banner{padding:8px;border-radius:10px;font-weight:700;text-align:center}
+    .banner.ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.5);color:#d1fae5}
+    .banner.bad{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.5);color:#fee2e2}
+    .keyboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
+    .key{background:#0b1220;border:1px solid rgba(255,255,255,.12);
+      padding:10px 0;border-radius:10px;font-weight:700;cursor:pointer;color:var(--text);
+      transition:.15s;user-select:none;font-size:16px;}
+    .key[disabled]{opacity:.35;cursor:not-allowed;}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🥷 Ahorcado</h1>
+      <a class="menu" href="palabras.html">⚙️ Configurar</a>
+    </header>
+
+    <div id="scoreboard"></div>
+
+    <main>
+      <section class="stage">
+        <div class="topbar">
+          <select id="category" title="Solo aplica en Turnos">
+            <option value="aleatorio">🎲 Aleatorio</option>
+            <option value="animales">🐾 Animales</option>
+            <option value="comida">🍎 Comida</option>
+            <option value="paises">🌍 Países</option>
+            <option value="objetos">🧰 Objetos</option>
+            <option value="custom">⭐ Personalizadas</option>
+          </select>
+          <select id="mode">
+            <option value="turnos">🔄 Turnos normales</option>
+            <option value="torneo">⚔️ Torneo (palabras de equipos)</option>
+          </select>
+          <button id="newBtn" class="btn primary">Nueva palabra</button>
+          <button id="revealBtn" class="btn">Revelar</button>
+          <button id="resetBtn" class="btn">Reiniciar</button>
+          <span id="lives" class="muted">Vidas: 6</span>
+          <span id="timer" class="muted">Tiempo: 1:30</span>
+        </div>
+
+        <div id="word" class="word"></div>
+
+        <div class="gallows">
+          <svg viewBox="0 0 300 260">
+            <line x1="10" y1="245" x2="290" y2="245" stroke="#64748b" stroke-width="6" />
+            <line x1="60" y1="240" x2="60" y2="20" stroke="#94a3b8" stroke-width="8" />
+            <line x1="60" y1="20" x2="200" y2="20" stroke="#94a3b8" stroke-width="8" />
+            <line x1="200" y1="20" x2="200" y2="50" stroke="#94a3b8" stroke-width="6" />
+            <circle class="part" id="p1" cx="200" cy="75" r="22" fill="none" stroke="#e5e7eb" stroke-width="5"/>
+            <line class="part" id="p2" x1="200" y1="97" x2="200" y2="150" stroke="#e5e7eb" stroke-width="5" />
+            <line class="part" id="p3" x1="200" y1="110" x2="175" y2="135" stroke="#e5e7eb" stroke-width="5" />
+            <line class="part" id="p4" x1="200" y1="110" x2="225" y2="135" stroke="#e5e7eb" stroke-width="5" />
+            <line class="part" id="p5" x1="200" y1="150" x2="180" y2="190" stroke="#e5e7eb" stroke-width="5" />
+            <line class="part" id="p6" x1="200" y1="150" x2="220" y2="190" stroke="#e5e7eb" stroke-width="5" />
+          </svg>
+        </div>
+
+        <div class="status">
+          <div>Fallos: <span id="fails">0</span></div>
+          <div id="wrongChips" style="display:flex; gap:6px; flex-wrap:wrap"></div>
+        </div>
+
+        <div id="banner" class="banner" style="display:none"></div>
+      </section>
+
+      <aside class="panel">
+        <h3 style="margin:0">Teclado</h3>
+        <div id="keyboard" class="keyboard"></div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const LETTERS=[..."ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"];
+    const MAX_ERRORS=6;
+    const TEAM_KEY="ahorcado_equipos";
+    const WORDS_KEY="ahorcado_palabras_por_equipo";
+    const CUSTOM_KEY="ahorcado_palabras_custom"; 
+    const normalize=s=>s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+    const WORDS={
+      animales:["GATO","PERRO","LEON","TIGRE","CABALLO","ELEFANTE"],
+      comida:["MANZANA","BANANA","ARROZ","TAMALES","CHOCOLATE"],
+      paises:["MEXICO","ARGENTINA","ESPAÑA","PERU","CHILE","COLOMBIA"],
+      objetos:["LAPIZ","CUADERNO","MOCHILA","COMPUTADORA","TECLADO"]
+    };
+
+    const getCustomWords=()=>{ try{return JSON.parse(localStorage.getItem(CUSTOM_KEY))||[];}catch{return[];} };
+
+    let equipos=JSON.parse(localStorage.getItem(TEAM_KEY))||["Equipo 1","Equipo 2"];
+    let palabrasPorEquipo=JSON.parse(localStorage.getItem(WORDS_KEY))||{};
+    let puntaje=new Array(equipos.length).fill(0);
+
+    let enfrentamientos=[],currentMatch=0,turno=-1,rival=null;
+    let usedByTeam={}; equipos.forEach((_,i)=>usedByTeam[i]=[]);
+
+    const state={wordOriginal:'',wordNorm:'',revealed:[],guessed:new Set(),wrong:new Set(),errors:0};
+    let usedWords=[]; let timerId;
+
+    const $word=document.getElementById('word');
+    const $keyboard=document.getElementById('keyboard');
+    const $banner=document.getElementById('banner');
+    const $newBtn=document.getElementById('newBtn');
+    const $resetBtn=document.getElementById('resetBtn');
+    const $revealBtn=document.getElementById('revealBtn');
+    const $timer=document.getElementById('timer');
+    const $fails=document.getElementById('fails');
+    const $lives=document.getElementById('lives');
+    const $wrongChips=document.getElementById('wrongChips');
+    const parts=[...document.querySelectorAll('.part')];
+    const $score=document.getElementById('scoreboard');
+    const $mode=document.getElementById('mode');
+    const $cat=document.getElementById('category');
+
+    function renderWord(){
+      $word.innerHTML='';
+      [...state.wordOriginal].forEach((ch,i)=>{
+        const span=document.createElement('span');
+        if(ch===' '){span.className="letter space";span.textContent=' ';state.revealed[i]=true;}
+        else{span.className="letter"+(state.revealed[i]?" revealed":"");span.textContent=state.revealed[i]?ch:'';}
+        $word.appendChild(span);
+      });
+    }
+    function renderKeyboard(){
+      $keyboard.innerHTML='';
+      LETTERS.forEach(L=>{
+        const b=document.createElement('button');
+        b.textContent=L;b.className='key';
+        b.disabled=state.guessed.has(L)||state.wrong.has(L);
+        b.onclick=()=>handleGuess(L);
+        $keyboard.appendChild(b);
+      });
+    }
+    function renderStatus(){
+      $fails.textContent=state.errors;
+      $lives.textContent=`Vidas: ${MAX_ERRORS-state.errors}`;
+      parts.forEach((p,i)=>p.classList.toggle('show',i<state.errors));
+      $wrongChips.innerHTML='';
+      [...state.wrong].forEach(L=>{
+        const d=document.createElement('div');
+        d.textContent=L;
+        d.style.border='1px solid #666';d.style.padding='2px 6px';d.style.borderRadius='8px';
+        $wrongChips.appendChild(d);
+      });
+    }
+    function renderScore(){
+      let html=equipos.map((e,i)=>`${e}: ${puntaje[i]}`).join(" | ");
+      if($mode.value==="turnos"){
+        const who = (turno<0?0:turno);
+        html+=`<br>Turno de: <b>${equipos[who]}</b>`;
+      } else {
+        if(currentMatch<enfrentamientos.length){
+          const [a,b]=enfrentamientos[currentMatch];
+          html+=`<br>⚔️ <b>${equipos[a]}</b> adivina palabra de <b>${equipos[b]}</b>`;
+        }else{
+          const max=Math.max(...puntaje);
+          const champs=equipos.filter((_,i)=>puntaje[i]===max);
+          html+=`<br>🏆 Campeón: ${champs.join(", ")}`;
+        }
+      }
+      $score.innerHTML=html;
+    }
+    function showBanner(cls,msg){$banner.className="banner "+cls;$banner.textContent=msg;$banner.style.display="block";}
+    function hideBanner(){$banner.style.display="none";}
+    function disableKeyboard(){[...$keyboard.children].forEach(b=>b.disabled=true);}
+    function revealAll(){state.revealed=state.revealed.map(()=>true);renderWord();}
+
+    function availablePool(){
+      const cat=$cat.value;
+      if(cat==='aleatorio'){
+        return [...WORDS.animales,...WORDS.comida,...WORDS.paises,...WORDS.objetos,...getCustomWords()];
+      }
+      if(cat==='custom') return getCustomWords();
+      return [...(WORDS[cat]||[])];
+    }
+    function generarEnfrentamientos(){
+      let m=[]; for(let i=0;i<equipos.length;i++){ for(let j=0;j<equipos.length;j++){ if(i!==j) m.push([i,j]); } }
+      return m;
+    }
+    function pickWordFrom(teamIndex){
+      const lista = (palabrasPorEquipo[equipos[teamIndex]]||[]).map(w=>w.toUpperCase());
+      const pool = lista.filter(w=>!usedByTeam[teamIndex].includes(w));
+      if(pool.length===0) return "SIN PALABRAS";
+      const w = pool[Math.floor(Math.random()*pool.length)];
+      usedByTeam[teamIndex].push(w);
+      return w;
+    }
+
+    function startTimer(){
+      clearInterval(timerId);
+      let s=90; $timer.textContent="Tiempo: 1:30";
+      timerId=setInterval(()=>{
+        s--; const m=Math.floor(s/60),sec=s%60;
+        $timer.textContent=`Tiempo: ${m}:${sec.toString().padStart(2,'0')}`;
+        if(s<=0){
+          clearInterval(timerId);
+          if($mode.value==="turnos"){
+            const otro=(turno+1)%equipos.length;
+            puntaje[otro]++; renderScore();
+            showBanner("bad",`⏰ Tiempo agotado. Punto para ${equipos[otro]}. Palabra: ${state.wordOriginal}`);
+          }else{
+            if(currentMatch<enfrentamientos.length){
+              const [a,b]=enfrentamientos[currentMatch];
+              puntaje[b]++; renderScore();
+              showBanner("bad",`⏰ Tiempo agotado. Punto para ${equipos[b]}. Palabra: ${state.wordOriginal}`);
+              currentMatch++; renderScore();
+            }
+          }
+          revealAll(); disableKeyboard();
+        }
+      },1000);
+    }
+
+    function pickNewWord(){
+      hideBanner();
+      state.errors=0; state.guessed.clear(); state.wrong.clear();
+
+      if($mode.value==="turnos"){
+        let pool=availablePool();
+        if(pool.length===0) pool=["VACIO"];
+        let options=pool.filter(w=>!usedWords.includes(w));
+        if(options.length===0){ usedWords=[]; options=pool; }
+        state.wordOriginal = options[Math.floor(Math.random()*options.length)].toUpperCase();
+        usedWords.push(state.wordOriginal);
+        turno = (turno+1)%equipos.length;
+      } else {
+        if(enfrentamientos.length===0){ enfrentamientos=generarEnfrentamientos(); currentMatch=0; }
+        if(currentMatch>=enfrentamientos.length){
+          showBanner("ok","🏆 Torneo finalizado");
+          disableKeyboard(); renderScore(); return;
+        }
+        [turno, rival] = enfrentamientos[currentMatch];
+        state.wordOriginal = pickWordFrom(rival).toUpperCase();
+      }
+
+      state.wordNorm=normalize(state.wordOriginal);
+      state.revealed=[...state.wordOriginal].map(ch=>(ch===' '));
+      renderWord(); renderKeyboard(); renderStatus(); renderScore(); startTimer();
+    }
+
+    function handleGuess(L){
+      if(state.errors>=MAX_ERRORS || state.revealed.every(Boolean)) return;
+      if(state.guessed.has(L) || state.wrong.has(L)) return;
+
+      if(state.wordNorm.includes(L)){
+        state.guessed.add(L);
+        [...state.wordOriginal].forEach((ch,i)=>{ if(!state.revealed[i] && normalize(ch)===L) state.revealed[i]=true; });
+        renderWord();
+
+        if(state.revealed.every(Boolean)){
+          puntaje[turno]++; renderScore();
+          showBanner("ok",`🎉 ${equipos[turno]} acertó`);
+          disableKeyboard(); clearInterval(timerId);
+          if($mode.value==="torneo"){ currentMatch++; renderScore(); }
+        }
+      }else{
+        state.wrong.add(L); state.errors++; renderStatus();
+        if(state.errors>=MAX_ERRORS){
+          if($mode.value==="turnos"){
+            const otro=(turno+1)%equipos.length;
+            puntaje[otro]++; renderScore();
+            showBanner("bad",`💀 ${equipos[turno]} falló. Punto para ${equipos[otro]}. Palabra: ${state.wordOriginal}`);
+          }else{
+            const [a,b]=enfrentamientos[currentMatch];
+            puntaje[b]++; renderScore();
+            showBanner("bad",`💀 ${equipos[a]} falló. Punto para ${equipos[b]}. Palabra: ${state.wordOriginal}`);
+            currentMatch++; renderScore();
+          }
+          revealAll(); disableKeyboard(); clearInterval(timerId);
+        }
+      }
+
+      [...$keyboard.children].forEach(b=>{ if(b.textContent===L) b.disabled=true; });
+    }
+
+    $newBtn.onclick=pickNewWord;
+    $resetBtn.onclick=()=>{ location.reload(); };
+    $revealBtn.onclick=()=>{ revealAll(); showBanner("bad","👀 Palabra revelada"); disableKeyboard(); clearInterval(timerId); };
+    $cat.onchange=()=>{ if($mode.value==="turnos") pickNewWord(); };
+    $mode.onchange=()=>{
+      clearInterval(timerId);
+      state.errors=0; state.guessed.clear(); state.wrong.clear(); usedWords=[];
+      if($mode.value==="turnos"){
+        turno=-1; rival=null;
+      }else{
+        enfrentamientos=[]; currentMatch=0; rival=null;
+        usedByTeam={}; equipos.forEach((_,i)=>usedByTeam[i]=[]);
+      }
+      hideBanner(); renderScore();
+    };
+
+    window.onkeydown=e=>{
+      if(state.errors>=MAX_ERRORS || state.revealed.every(Boolean)) return;
+      const k=e.key.toUpperCase();
+      if(k==='Ñ') return handleGuess('Ñ');
+      if(/^[A-Z]$/.test(k)) handleGuess(k);
+    };
+
+    renderScore();
+    pickNewWord();
+  </script>
+</body>
+</html>
